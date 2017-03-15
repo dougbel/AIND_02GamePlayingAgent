@@ -37,8 +37,23 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
 
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    # my heuristic is about the percentage of avalible board that could be visited from my agent, and compares
+    # it with the one of the opponent
+
+    free_squares = len(game.get_blank_spaces())
+    one_free_square_percentage = 100 / (free_squares)
+
+    own_moves_posibilities = len(game.get_legal_moves(player)) * one_free_square_percentage  # mi percentage
+    opp_moves_posibilities = len(
+        game.get_legal_moves(game.get_opponent(player))) * one_free_square_percentage  # her, his
+
+    return float(own_moves_posibilities - opp_moves_posibilities)
 
 
 class CustomPlayer:
@@ -46,7 +61,7 @@ class CustomPlayer:
     and a depth-limited minimax algorithm with alpha-beta pruning. You must
     finish and test this player to make sure it properly uses minimax and
     alpha-beta to return a good move before the search time limit expires.
-
+o
     Parameters
     ----------
     search_depth : int (optional)
@@ -119,47 +134,59 @@ class CustomPlayer:
 
         self.time_left = time_left
 
-        # TODO: finish this function!
-
-
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
-        self.playerInTurn = game.active_player;
-        actions = game.get_legal_moves()
-        print(actions)
-        if len(actions) == 0:  # if no legal actions return (-1,-1)
-            return -1, -1
+        if len(legal_moves) > 0:
+            best_move = legal_moves[0]  # guessing
+        else:
+            best_move = (-1, -1)  # no more available moves
 
-        move = actions[0]
+        best_result = float("-inf")  # guessing
 
         try:
             # The search method call (alpha beta or minimax) should happen in
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
-            argmax = float("-inf")
-            max_i = 0
-            i = 0
 
-            for action in actions:
-                value, move = self.minimax(game.forecast_move(action), self.search_depth, True)
-                print(value)
-                if (value > argmax):
-                    max_i = i
-                i += 1
+            if self.iterative:
 
-            move = actions[max_i]
+                # search by the best move on different depths
+                for depth in range(1, 200):
+
+                    if self.method == "minimax":
+                        result, move = self.minimax(game, depth)
+
+                    elif self.method == "alphabeta":
+                        result, move = self.alphabeta(game, depth)
+
+                    if result > best_result:
+                        best_result = result
+                        best_move = move
+
+                    if self.time_left() < self.TIMER_THRESHOLD:
+                        break
+
+            else:  # search is not made by iterative deepening
+
+                if self.method == "minimax":
+                    result, move = self.minimax(game, self.search_depth)
+
+                elif self.method == "alphabeta":
+                    result, move = self.alphabeta(game, self.search_depth)
+
+                if result > best_result:
+                    best_result = result
+                    best_move = move
+
 
         except Timeout:
-            # Handle any actions required at timeout, if necessary
-            move = actions[max_i]
+            pass  # nothing to do, worst case:  guesses
 
         # Return the best move from the last completed search iteration
-        return move
-
-
+        return best_move
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -195,75 +222,116 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        if(self.playerInTurn == None):
-            self.playerInTurn = game.active_player
+        # this version implemented was made by helper functions as they where show in AIND
         if depth == 0:
-            #TODO esto lo tengo que separar en dos funciones, por ahora que funcione
-            return self.score(game, self.playerInTurn),(-1,-1)
+            return self.score(game, self.playerInTurn), (-1, -1)
+
+        if self.playerInTurn == None:
+            self.playerInTurn = game.active_player
+
+        actions = game.get_legal_moves(game.active_player)
 
         if maximizing_player:
-            print("en maximizing_player, con profundiad " + str(depth))
-            print(game.to_string())
-            actions = game.get_legal_moves(game.active_player)
-            print(actions)
-            max_v = float("-inf")
-            if len(actions)==0:
-                return max_v, (-1,-1)
+
+            max_v = float("-inf")  # guess
+
+            if len(actions) == 0:
+                return max_v, (-1, -1)  # if there are no posible move then this a horrible case
 
             i = 0;
             max_i = 0;
+
             for action in actions:
-
-                print(action)
-
+                # iterate between posibilities of moves to determine the better (maximum score available)
                 posible_status = game.forecast_move(action)
-
-                print(posible_status.to_string())
-                value, move = self.minimax(posible_status, depth-1, False)
-
-                print("para " + str(action) + "el valor es "+str(value))
-
-                if (value > max_v):
+                # this is the call to the helper function but with a step in depth less
+                value = self.min_value(posible_status, depth - 1)
+                if (value > max_v):  # check if the action is better than last ones checked
                     max_v = value
                     max_i = i
                 i += 1
 
             return max_v, actions[max_i]  # return de max of the mins in the next level
 
-        else:
-            print("en minimizing_player, con profundiad " + str(depth))
-            print(game.to_string())
-            actions = game.get_legal_moves(game.active_player)
-            print(actions)
-            min_v = float("inf")
+        else:  # this is a minimizing_player
 
-            if len(actions)==0:
-                return min_v, (-1,-1)
+            min_v = float("inf")  # guess
+
+            if len(actions) == 0:
+                return min_v, (-1, -1)
 
             i = 0;
             min_i = 0;
+
             for action in actions:
-
-                print(action)
-
+                # iterate between posibilities of moves to determine the better (minimun score available)
                 posible_status = game.forecast_move(action)
+                # this is the call to the helper function but with a step in depth less
+                value = self.max_value(posible_status, depth - 1)
 
-                print(posible_status.to_string())
-                value, move = self.minimax(posible_status,depth-1,True)
-
-                print("para " + str(action) + "el valor es " + str(value))
-
-                if (value < min_v):
+                if (value < min_v): # check if the action is better than last ones checked
                     min_v = value
-                    min_i =i
+                    min_i = i
+
                 i += 1
 
-            return min_v, actions[min_i]  # return de min of the maxs in the next level
+            return min_v, actions[min_i]  # return de min of the max in the next level
 
 
+    def max_value(self, game, depth):
+        """
+        This is the helper function for de minimax function
+        :param game: the actual game
+        :param depth: how many plies are necesary to go to consider a leaf
+        :return: maximum score associated to the subtree in this branch
+        """
+
+        if depth == 0:
+            return self.score(game, self.playerInTurn)
+
+        actions = game.get_legal_moves(game.active_player)
+
+        max_v = float("-inf")
+
+        if len(actions) == 0:
+            return max_v
+
+        for action in actions:  # check the maximum value in the branch
+            posible_status = game.forecast_move(action)
+            value = self.min_value(posible_status, depth - 1)
+
+            if value > max_v:
+                max_v = value
+
+        return max_v
+
+    def min_value(self, game, depth):
+        """
+        This is the helper function for de minimax function to fin the min score in a branch
+        :param game: the actual game
+        :param depth: how many plies are necesary to go to consider a leaf
+        :return: minimum score associated to the subtree in this branch
+        """
+
+        if depth == 0:
+            return self.score(game, self.playerInTurn)
+
+        actions = game.get_legal_moves(game.active_player)
+
+        min_v = float("inf")
+
+        if len(actions) == 0:
+            return min_v
 
 
+        for action in actions:  # check the maximum value in the branch
+            posible_status = game.forecast_move(action)
+            value = self.max_value(posible_status, depth - 1)
+
+            if (value < min_v):
+                min_v = value
+
+        return min_v
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -303,8 +371,77 @@ class CustomPlayer:
                 to pass the project unit tests; you cannot call any other
                 evaluation function directly.
         """
+
+
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        # this version implement a recursive versions of `alphabeta`
+
+        #this just for know who is the player in turn
+        if (self.playerInTurn == None):
+            self.playerInTurn = game.active_player
+
+        if depth == 0:
+            return self.score(game, self.playerInTurn), (-1, -1)
+
+        if maximizing_player:   #this is a maximizing player so in the first ply I'm look for the max of the mins
+
+            actions = game.get_legal_moves(game.active_player)
+
+            max_v = float("-inf")   # guess
+
+            if len(actions) == 0:
+                return max_v, (-1, -1)
+
+            i = 0;
+            max_i = 0;
+            for action in actions:
+
+                posible_status = game.forecast_move(action)
+
+                # recursive call, it checks the max of the min in the next ply
+                value, move = self.alphabeta(posible_status, depth - 1, alpha, beta, False)
+
+                if (value >= beta):
+                    return value, move
+
+                alpha = max(alpha, value)
+
+                if (value > max_v):
+                    max_v = value
+                    max_i = i
+                i += 1
+
+            return max_v, actions[max_i]  # return de max of the mins in the next level
+
+        else: #this is a maximizing player so in the first ply I'm look for the max of the mins
+
+            actions = game.get_legal_moves()
+
+            min_v = float("inf")     #guess
+
+            if len(actions) == 0:
+                return min_v, (-1, -1)
+
+            i = 0;
+            min_i = 0;
+            for action in actions:
+
+                posible_status = game.forecast_move(action)
+
+                # recursive call, it checks the min of the max in the next ply
+                value, move = self.alphabeta(posible_status, depth - 1, alpha, beta, True)
+
+                if (value <= alpha):
+                    return value, move
+
+                beta = min(beta, value)
+
+
+                if (value < min_v):
+                    min_v = value
+                    min_i = i
+                i += 1
+
+            return min_v, actions[min_i]  # return de min of the maxs in the next level
