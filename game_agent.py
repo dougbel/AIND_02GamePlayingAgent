@@ -7,14 +7,134 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
+import math
 
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
 
+def distance(x1,x2):
+    dist = math.sqrt((x1[0] - x2[0]) ** 2 + (x1[1] - x2[1]) ** 2)
+    return dist
 
-def custom_score(game, player):
+def custom_score(game,player):
+    return multivariable_score(game,player)
+
+def centers_board_score(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic tries to centralice the game (more probilities of win because position)
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    # my heuristic is about the distance bewteen dos players
+
+    opponent = game.get_opponent(player)
+
+    board_center = (int(game.width/2),int(game.height/2))
+
+    position_own = game.get_player_location(player)
+    position_opp = game.get_player_location(opponent)
+
+
+
+    #near from centre is better
+    norm_distance_centre_own = 100- distance(board_center,position_own) * 100 / math.sqrt(2*(board_center[0])**2)
+    #far from centre is better
+    norm_distance_centre_opp = distance(board_center, position_opp) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
+
+    # this is the score, I choose ponderations
+    score = norm_distance_centre_own*.65 + norm_distance_centre_opp*.35
+
+
+    return score
+
+
+def multivariable_score(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic calculate a score in terms of many variable thought a weighted average
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    # my heuristic is about the distance bewteen dos players
+
+    opponent = game.get_opponent(player)
+
+    board_center = (int(game.width/2),int(game.height/2))
+
+    moves_own = game.get_legal_moves(player)
+    moves_opp = game.get_legal_moves(opponent)
+
+    position_own = game.get_player_location(player)
+    position_opp = game.get_player_location(opponent)
+
+
+
+    #num of movements in terms of percentage
+    norm_moves_own = len(moves_own) * 100 / 8
+
+    #num of available moves for opponent in percentage
+    norm_moves_opp = len(moves_opp) * 100 / 8
+
+    #near from centre is better
+    norm_distance_centre_own = 100- distance(board_center,position_own) * 100 / math.sqrt(2*(board_center[0])**2)
+    #far from centre is better
+    norm_distance_centre_opp = distance(board_center, position_opp) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
+
+    # this is the score, I choose ponderations
+    score = norm_moves_opp *.40  +  norm_moves_opp*.25 + norm_distance_centre_own*.20 + norm_distance_centre_opp*.15
+
+
+    return score
+
+
+def distance_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
@@ -43,17 +163,15 @@ def custom_score(game, player):
     if game.is_winner(player):
         return float("inf")
 
-    # my heuristic is about the percentage of avalible board that could be visited from my agent, and compares
-    # it with the one of the opponent
+    # my heuristic is about the distance bewteen dos players
 
-    free_squares = len(game.get_blank_spaces())
-    one_free_square_percentage = 100 / (free_squares)
+    position1 = game.get_player_location(player)
+    position2 = game.get_player_location(game.get_opponent(player))
 
-    own_moves_posibilities = len(game.get_legal_moves(player)) * one_free_square_percentage  # mi percentage
-    opp_moves_posibilities = len(
-        game.get_legal_moves(game.get_opponent(player))) * one_free_square_percentage  # her, his
+    dist = distance(position1,position2)
 
-    return float(own_moves_posibilities - opp_moves_posibilities)
+    return float(dist)
+
 
 
 class CustomPlayer:
@@ -61,7 +179,7 @@ class CustomPlayer:
     and a depth-limited minimax algorithm with alpha-beta pruning. You must
     finish and test this player to make sure it properly uses minimax and
     alpha-beta to return a good move before the search time limit expires.
-o
+
     Parameters
     ----------
     search_depth : int (optional)

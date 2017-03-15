@@ -32,6 +32,9 @@ from sample_players import open_move_score
 from sample_players import improved_score
 from game_agent import CustomPlayer
 from game_agent import custom_score
+from game_agent import distance_score
+from game_agent import multivariable_score
+from game_agent import centers_board_score
 
 NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
@@ -161,7 +164,9 @@ def main():
     # relative to the performance of the ID_Improved agent to account for
     # faster or slower computers.
     test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
-                   Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student")]
+                   Agent(CustomPlayer(score_fn=distance_score, **CUSTOM_ARGS), "Distance between players"),
+                   Agent(CustomPlayer(score_fn=centers_board_score, **CUSTOM_ARGS), "Centers board heuristic"),
+                   Agent(CustomPlayer(score_fn=multivariable_score, **CUSTOM_ARGS), "Multivariable score")]
 
     print(DESCRIPTION)
     for agentUT in test_agents:
