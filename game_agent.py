@@ -167,7 +167,7 @@ def multivariable_score(game, player):
     norm_distance_centre_opp = distance(board_center, position_opp) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
 
     # this is the score, I choose ponderations
-    score = float((norm_moves_own-norm_moves_opp)*.70 + norm_distance_centre_own*.20 + norm_distance_centre_opp*.20)
+    score = float((norm_moves_own-norm_moves_opp)*.60 + norm_distance_centre_own*.20 + norm_distance_centre_opp*.20)
 
 
     return score
