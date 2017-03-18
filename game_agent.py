@@ -21,6 +21,45 @@ def distance(x1,x2):
 def custom_score(game,player):
     return multivariable_score(game,player)
 
+
+def distance_score(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    # my heuristic is about the distance bewteen dos players
+
+    position1 = game.get_player_location(player)
+    position2 = game.get_player_location(game.get_opponent(player))
+
+    dist = distance(position1,position2)
+
+    return float(dist)
+
 def centers_board_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
@@ -62,12 +101,12 @@ def centers_board_score(game, player):
 
 
     #near from centre is better
-    norm_distance_centre_own = 100- distance(board_center,position_own) * 100 / math.sqrt(2*(board_center[0])**2)
+    norm_distance_centre_own = 100 - distance(board_center, position_own) * 100 / math.sqrt(2*(board_center[0])**2)
     #far from centre is better
     norm_distance_centre_opp = distance(board_center, position_opp) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
 
     # this is the score, I choose ponderations
-    score = norm_distance_centre_own*.65 + norm_distance_centre_opp*.35
+    score = float(norm_distance_centre_own*.65 + norm_distance_centre_opp*.35)
 
 
     return score
@@ -128,50 +167,10 @@ def multivariable_score(game, player):
     norm_distance_centre_opp = distance(board_center, position_opp) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
 
     # this is the score, I choose ponderations
-    score = norm_moves_opp *.40  +  norm_moves_opp*.25 + norm_distance_centre_own*.20 + norm_distance_centre_opp*.15
+    score = float((norm_moves_own-norm_moves_opp)*.70 + norm_distance_centre_own*.20 + norm_distance_centre_opp*.20)
 
 
     return score
-
-
-def distance_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
-
-    Parameters
-    ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
-    Returns
-    -------
-    float
-        The heuristic value of the current game state to the specified player.
-    """
-
-    if game.is_loser(player):
-        return float("-inf")
-
-    if game.is_winner(player):
-        return float("inf")
-
-    # my heuristic is about the distance bewteen dos players
-
-    position1 = game.get_player_location(player)
-    position2 = game.get_player_location(game.get_opponent(player))
-
-    dist = distance(position1,position2)
-
-    return float(dist)
-
 
 
 class CustomPlayer:
@@ -340,116 +339,45 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # this version implemented was made by helper functions as they where show in AIND
+        # this version implement a recursive versions of `minimax`
+
+        #guesses
+        if maximizing_player:
+            score = float("-inf")
+        else:
+            score = float("inf")
+        move = (-1-1)
+
+
+        # this just for know who is the player in turn
+        if (self.playerInTurn == None):
+            self.playerInTurn = game.active_player
+
+        # if we are at the last ply
         if depth == 0:
             return self.score(game, self.playerInTurn), (-1, -1)
 
-        if self.playerInTurn == None:
-            self.playerInTurn = game.active_player
 
-        actions = game.get_legal_moves(game.active_player)
-
-        if maximizing_player:
-
-            max_v = float("-inf")  # guess
-
-            if len(actions) == 0:
-                return max_v, (-1, -1)  # if there are no posible move then this a horrible case
-
-            i = 0;
-            max_i = 0;
-
-            for action in actions:
-                # iterate between posibilities of moves to determine the better (maximum score available)
-                posible_status = game.forecast_move(action)
-                # this is the call to the helper function but with a step in depth less
-                value = self.min_value(posible_status, depth - 1)
-                if (value > max_v):  # check if the action is better than last ones checked
-                    max_v = value
-                    max_i = i
-                i += 1
-
-            return max_v, actions[max_i]  # return de max of the mins in the next level
-
-        else:  # this is a minimizing_player
-
-            min_v = float("inf")  # guess
-
-            if len(actions) == 0:
-                return min_v, (-1, -1)
-
-            i = 0;
-            min_i = 0;
-
-            for action in actions:
-                # iterate between posibilities of moves to determine the better (minimun score available)
-                posible_status = game.forecast_move(action)
-                # this is the call to the helper function but with a step in depth less
-                value = self.max_value(posible_status, depth - 1)
-
-                if (value < min_v): # check if the action is better than last ones checked
-                    min_v = value
-                    min_i = i
-
-                i += 1
-
-            return min_v, actions[min_i]  # return de min of the max in the next level
+        # get al posible actions for current player
+        actions = game.get_legal_moves()
 
 
-    def max_value(self, game, depth):
-        """
-        This is the helper function for de minimax function
-        :param game: the actual game
-        :param depth: how many plies are necesary to go to consider a leaf
-        :return: maximum score associated to the subtree in this branch
-        """
-
-        if depth == 0:
-            return self.score(game, self.playerInTurn)
-
-        actions = game.get_legal_moves(game.active_player)
-
-        max_v = float("-inf")
-
-        if len(actions) == 0:
-            return max_v
-
-        for action in actions:  # check the maximum value in the branch
-            posible_status = game.forecast_move(action)
-            value = self.min_value(posible_status, depth - 1)
-
-            if value > max_v:
-                max_v = value
-
-        return max_v
-
-    def min_value(self, game, depth):
-        """
-        This is the helper function for de minimax function to fin the min score in a branch
-        :param game: the actual game
-        :param depth: how many plies are necesary to go to consider a leaf
-        :return: minimum score associated to the subtree in this branch
-        """
-
-        if depth == 0:
-            return self.score(game, self.playerInTurn)
-
-        actions = game.get_legal_moves(game.active_player)
-
-        min_v = float("inf")
-
-        if len(actions) == 0:
-            return min_v
+        for action in actions:
+            temp_score,_ = self.minimax(game.forecast_move(action),depth-1,not maximizing_player)
 
 
-        for action in actions:  # check the maximum value in the branch
-            posible_status = game.forecast_move(action)
-            value = self.max_value(posible_status, depth - 1)
+            if maximizing_player:
+                if  temp_score > score:
+                    score =  temp_score # is a better maximum score
+                    move = action
 
-            if (value < min_v):
-                min_v = value
+            else:
+                if temp_score < score:
+                    score = temp_score  # is a better minimum score
+                    move = action
 
-        return min_v
+        return score,move
+
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -496,70 +424,50 @@ class CustomPlayer:
 
         # this version implement a recursive versions of `alphabeta`
 
-        #this just for know who is the player in turn
+        #guesses
+        if maximizing_player:
+            score = float("-inf")
+        else:
+            score = float("inf")
+        move = (-1-1)
+
+        # this just for know who is the player in turn
         if (self.playerInTurn == None):
             self.playerInTurn = game.active_player
 
+        # if we are at the last ply
         if depth == 0:
             return self.score(game, self.playerInTurn), (-1, -1)
 
-        if maximizing_player:   #this is a maximizing player so in the first ply I'm look for the max of the mins
 
-            actions = game.get_legal_moves(game.active_player)
+        # get al posible actions for current player
+        actions = game.get_legal_moves()
 
-            max_v = float("-inf")   # guess
-
-            if len(actions) == 0:
-                return max_v, (-1, -1)
-
-            i = 0;
-            max_i = 0;
-            for action in actions:
-
-                posible_status = game.forecast_move(action)
-
-                # recursive call, it checks the max of the min in the next ply
-                value, move = self.alphabeta(posible_status, depth - 1, alpha, beta, False)
-
-                if (value >= beta):
-                    return value, move
-
-                alpha = max(alpha, value)
-
-                if (value > max_v):
-                    max_v = value
-                    max_i = i
-                i += 1
-
-            return max_v, actions[max_i]  # return de max of the mins in the next level
-
-        else: #this is a maximizing player so in the first ply I'm look for the max of the mins
-
-            actions = game.get_legal_moves()
-
-            min_v = float("inf")     #guess
-
-            if len(actions) == 0:
-                return min_v, (-1, -1)
-
-            i = 0;
-            min_i = 0;
-            for action in actions:
-
-                posible_status = game.forecast_move(action)
-
-                # recursive call, it checks the min of the max in the next ply
-                value, move = self.alphabeta(posible_status, depth - 1, alpha, beta, True)
-
-                if (value <= alpha):
-                    return value, move
-
-                beta = min(beta, value)
+        for action in actions:
+            temp_score,_ = self.alphabeta(game.forecast_move(action),depth-1,alpha,beta,not maximizing_player)
 
 
-                if (value < min_v):
-                    min_v = value
-                    min_i = i
-                i += 1
+            if maximizing_player:
+                if  temp_score > score:
+                    score =  temp_score # is a better maximum score
+                    move = action
 
-            return min_v, actions[min_i]  # return de min of the maxs in the next level
+                if score >=beta:
+                    break           # no more search in next branch, there's no a value to search
+
+                alpha = max (alpha, score)
+
+            else:
+                if temp_score < score:
+                    score = temp_score  # is a better minimum score
+                    move = action
+
+                if score <= alpha:
+                    break           # no more search in next branch, there's no a value to search
+
+                beta = min(beta, score)
+
+
+        return score,move
+
+
