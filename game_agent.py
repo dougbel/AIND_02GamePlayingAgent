@@ -14,35 +14,44 @@ class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
 
-def distance(x1,x2):
+
+def distance(x1, x2):
     dist = math.sqrt((x1[0] - x2[0]) ** 2 + (x1[1] - x2[1]) ** 2)
     return dist
 
-def custom_score(game,player):
-    return multivariable_score(game,player)
+
+def custom_score(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+        of the given player.
+
+        Note: this function should be called from within a Player instance as
+        `self.score()` -- you should not need to call this function directly.
+
+        Parameters
+        ----------
+        game : `isolation.Board`
+            An instance of `isolation.Board` encoding the current state of the
+            game (e.g., player locations and blocked cells).
+
+        player : object
+            A player instance in the current game (i.e., an object corresponding to
+            one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+        Returns
+        -------
+        float
+            The value calculated by the chosen heuristic
+        """
+    return multivariable_score(game, player)
 
 
 def distance_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
-
-    Parameters
-    ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
-    Returns
-    -------
-    float
-        The heuristic value of the current game state to the specified player.
+    """
+    The main idea in this heuristic is to keep as much as possible a distance versus you opponent.
+    “If you are far from it, it could be easier find a place for your next movement”
+    :param game: current state of the game
+    :param player: a player instance of the game
+    :return: distance between player of the game
     """
 
     if game.is_loser(player):
@@ -51,36 +60,24 @@ def distance_score(game, player):
     if game.is_winner(player):
         return float("inf")
 
-    # my heuristic is about the distance bewteen dos players
+    # my heuristic is about the distance between two players
 
     position1 = game.get_player_location(player)
     position2 = game.get_player_location(game.get_opponent(player))
 
-    dist = distance(position1,position2)
+    dist = distance(position1, position2)
 
-    return float(dist)
+    return float(dist)  # This was constructed just to know how bad is this as evaluation function.
+
 
 def centers_board_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
-
-    Parameters
-    ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
-    Returns
-    -------
-    float
-        The heuristic tries to centralice the game (more probilities of win because position)
+    """
+    With these Heuristic I'm trying to maintain my player near to centre’s board. We saw on videos that being at the
+    centre could be a good strategy to win. The main idea here is that you can make movement in any directions (ideally)
+    :param game: current state of the game
+    :param player: a player instance of the game
+    :return: The result of the analysis of distances between player and the centre's game. It's better tha
+    my player is nearest to the centre.
     """
 
     if game.is_loser(player):
@@ -89,50 +86,38 @@ def centers_board_score(game, player):
     if game.is_winner(player):
         return float("inf")
 
-    # my heuristic is about the distance bewteen dos players
-
     opponent = game.get_opponent(player)
 
-    board_center = (int(game.width/2),int(game.height/2))
+    board_center = (int(game.width / 2), int(game.height / 2))
 
+    # position of my player
     position_own = game.get_player_location(player)
+    # position of opponent
     position_opp = game.get_player_location(opponent)
 
 
-
-    #near from centre is better
-    norm_distance_centre_own = 100 - distance(board_center, position_own) * 100 / math.sqrt(2*(board_center[0])**2)
-    #far from centre is better
+    # I normalize these because I get values between 0 and 100
+    # if I am near from centre is better for me
+    norm_distance_centre_own = 100 - distance(board_center, position_own) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
+    # if my opponent is far from centre is better for me
     norm_distance_centre_opp = distance(board_center, position_opp) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
 
-    # this is the score, I choose ponderations
-    score = float(norm_distance_centre_own*.65 + norm_distance_centre_opp*.35)
-
+    # this is the score, I choose weights
+    score = float(norm_distance_centre_own * .65 + norm_distance_centre_opp * .35)
 
     return score
 
 
 def multivariable_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
-
-    Parameters
-    ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
-    Returns
-    -------
-    float
-        The heuristic calculate a score in terms of many variable thought a weighted average
+    """
+    I decided construct this because this kind of problems have a lot of variables, I think that is not enough
+    evaluate a position with just one variable. It is also important know that is not a good idea just analyse
+    your situation on the board because your opponent and his/her situation affects you too.
+    In this complex heuristic I decide also to use the distance to centre's board because being at the center could be a better way to win.
+    I normalize the results of every metric in order to control that weighted average used.
+    :param game: current state of the game
+    :param player: a player instance of the game
+    :return: The heuristic calculate a score in terms of many variable thought a weighted average
     """
 
     if game.is_loser(player):
@@ -141,34 +126,34 @@ def multivariable_score(game, player):
     if game.is_winner(player):
         return float("inf")
 
-    # my heuristic is about the distance bewteen dos players
+    # this heuristic tries to join two heuristic that have good results in order to improve them
 
     opponent = game.get_opponent(player)
 
-    board_center = (int(game.width/2),int(game.height/2))
+    board_center = (int(game.width / 2), int(game.height / 2))  # this is the centre's board
 
-    moves_own = game.get_legal_moves(player)
-    moves_opp = game.get_legal_moves(opponent)
+    moves_own = game.get_legal_moves(player)  # my moves
+    moves_opp = game.get_legal_moves(opponent)  # opponent's moves
 
-    position_own = game.get_player_location(player)
-    position_opp = game.get_player_location(opponent)
+    position_own = game.get_player_location(player)  # my position
+    position_opp = game.get_player_location(opponent)  # opponent's position
 
+    # I normalize these because I get values between 0 and 100
 
-
-    #num of movements in terms of percentage
+    # num of movements in terms of percentage
     norm_moves_own = len(moves_own) * 100 / 8
 
-    #num of available moves for opponent in percentage
+    # num of available moves for opponent in percentage
     norm_moves_opp = len(moves_opp) * 100 / 8
 
-    #near from centre is better
-    norm_distance_centre_own = 100- distance(board_center,position_own) * 100 / math.sqrt(2*(board_center[0])**2)
-    #far from centre is better
+    # if I am near from centre is better for me
+    norm_distance_centre_own = 100 - distance(board_center, position_own) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
+    # if my opponent is far from centre is better for me
     norm_distance_centre_opp = distance(board_center, position_opp) * 100 / math.sqrt(2 * (board_center[0]) ** 2)
 
-    # this is the score, I choose ponderations
-    score = float((norm_moves_own-norm_moves_opp)*.60 + norm_distance_centre_own*.20 + norm_distance_centre_opp*.20)
-
+    # this is the score, I choose weights
+    score = float(
+        (norm_moves_own - norm_moves_opp) * .60 + norm_distance_centre_own * .20 + norm_distance_centre_opp * .20)
 
     return score
 
@@ -261,6 +246,7 @@ class CustomPlayer:
             best_move = (-1, -1)  # no more available moves
 
         best_result = float("-inf")  # guessing
+        depth = 0  # how deep it will go in plies
 
         try:
             # The search method call (alpha beta or minimax) should happen in
@@ -271,13 +257,10 @@ class CustomPlayer:
             if self.iterative:
 
                 # search by the best move on different depths
-                for depth in range(1, 200):
+                while True:
+                    depth += 1
+                    result, move = getattr(self, self.method)(game, depth)
 
-                    if self.method == "minimax":
-                        result, move = self.minimax(game, depth)
-
-                    elif self.method == "alphabeta":
-                        result, move = self.alphabeta(game, depth)
 
                     if result > best_result:
                         best_result = result
@@ -288,11 +271,7 @@ class CustomPlayer:
 
             else:  # search is not made by iterative deepening
 
-                if self.method == "minimax":
-                    result, move = self.minimax(game, self.search_depth)
-
-                elif self.method == "alphabeta":
-                    result, move = self.alphabeta(game, self.search_depth)
+                result, move = getattr(self, self.method)(game, self.search_depth)
 
                 if result > best_result:
                     best_result = result
@@ -341,13 +320,12 @@ class CustomPlayer:
 
         # this version implement a recursive versions of `minimax`
 
-        #guesses
+        # guesses
         if maximizing_player:
             score = float("-inf")
         else:
             score = float("inf")
-        move = (-1-1)
-
+        move = (-1 - 1)
 
         # this just for know who is the player in turn
         if (self.playerInTurn == None):
@@ -357,18 +335,15 @@ class CustomPlayer:
         if depth == 0:
             return self.score(game, self.playerInTurn), (-1, -1)
 
-
-        # get al posible actions for current player
+        # get al possible actions for current player
         actions = game.get_legal_moves()
 
-
         for action in actions:
-            temp_score,_ = self.minimax(game.forecast_move(action),depth-1,not maximizing_player)
-
+            temp_score, _ = self.minimax(game.forecast_move(action), depth - 1, not maximizing_player)
 
             if maximizing_player:
-                if  temp_score > score:
-                    score =  temp_score # is a better maximum score
+                if temp_score > score:
+                    score = temp_score  # is a better maximum score
                     move = action
 
             else:
@@ -376,8 +351,7 @@ class CustomPlayer:
                     score = temp_score  # is a better minimum score
                     move = action
 
-        return score,move
-
+        return score, move
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -418,18 +392,17 @@ class CustomPlayer:
                 evaluation function directly.
         """
 
-
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
         # this version implement a recursive versions of `alphabeta`
 
-        #guesses
+        # guesses
         if maximizing_player:
             score = float("-inf")
         else:
             score = float("inf")
-        move = (-1-1)
+        move = (-1 - 1)
 
         # this just for know who is the player in turn
         if (self.playerInTurn == None):
@@ -439,23 +412,21 @@ class CustomPlayer:
         if depth == 0:
             return self.score(game, self.playerInTurn), (-1, -1)
 
-
         # get al posible actions for current player
         actions = game.get_legal_moves()
 
         for action in actions:
-            temp_score,_ = self.alphabeta(game.forecast_move(action),depth-1,alpha,beta,not maximizing_player)
-
+            temp_score, _ = self.alphabeta(game.forecast_move(action), depth - 1, alpha, beta, not maximizing_player)
 
             if maximizing_player:
-                if  temp_score > score:
-                    score =  temp_score # is a better maximum score
+                if temp_score > score:
+                    score = temp_score  # is a better maximum score
                     move = action
 
-                if score >=beta:
-                    break           # no more search in next branch, there's no a value to search
+                if score >= beta:
+                    break  # no more search in next branch, there's no a value to search
 
-                alpha = max (alpha, score)
+                alpha = max(alpha, score)
 
             else:
                 if temp_score < score:
@@ -463,11 +434,8 @@ class CustomPlayer:
                     move = action
 
                 if score <= alpha:
-                    break           # no more search in next branch, there's no a value to search
+                    break  # no more search in next branch, there's no a value to search
 
                 beta = min(beta, score)
 
-
-        return score,move
-
-
+        return score, move
