@@ -166,7 +166,7 @@ def main():
     test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
                    Agent(CustomPlayer(score_fn=distance_score, **CUSTOM_ARGS), "Distance between players"),
                    Agent(CustomPlayer(score_fn=centers_board_score, **CUSTOM_ARGS), "Centers board heuristic"),
-                   Agent(CustomPlayer(score_fn=multivariable_score, **CUSTOM_ARGS), "Multivariable score")]
+                   Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Multivariable score")]
 
     print(DESCRIPTION)
     for agentUT in test_agents:
